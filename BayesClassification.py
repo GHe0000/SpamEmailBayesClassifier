@@ -5,6 +5,8 @@ from itertools import islice, takewhile
 from functools import reduce
 from collections import Counter, defaultdict
 
+from pathlib import Path
+
 # --- 两个工具高阶函数 ---
 def pipe(data, *funcs):
     return reduce(lambda d, f: f(d), funcs, data)

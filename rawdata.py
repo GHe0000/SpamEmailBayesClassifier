@@ -42,7 +42,7 @@ def preprocess(raw_text, stopwords):
 
 if __name__ == "__main__":
     index_file = "./Data/trec06c/delay/index"
-    N = 1000  # 读取前 N 条邮件
+    N = 10000  # 读取前 N 条邮件
 
     stopwords_file = "./Data/stopwords.txt"
     stopwords = load_stopwords(stopwords_file)

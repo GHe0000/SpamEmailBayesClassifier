@@ -1,0 +1,1 @@
+read asp resellerid lynximgmap file localhost home qa getset tmp html map
