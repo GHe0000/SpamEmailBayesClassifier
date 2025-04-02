@@ -2,7 +2,6 @@
 原始数据处理
 '''
 
-
 import os
 import re
 from itertools import islice
@@ -32,8 +31,8 @@ def preprocess(raw_text, stopwords):
     cleaned = re.sub(r'[^\u4e00-\u9fa5a-zA-Z0-9]', ' ', cleaned)
     words = jieba.lcut(cleaned)
     filtered = [
-        word.lower() for word in words 
-        if len(word) > 1 
+        word.lower() for word in words
+        if len(word) > 1
         and word not in stopwords
         and not re.match(r'^\d+$', word)
         and not re.match(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$', word)
