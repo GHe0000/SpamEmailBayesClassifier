@@ -58,7 +58,7 @@ def doc2vec(doc, vocab, idf):
     tf = pipe(
         doc,
         lambda d: Counter(d),
-        lambda cnt: [cnt.get(w, 0) / len(doc) for w in vocab]
+        lambda cnt: [cnt.get(w, 0) / len(doc) for w in vocab]  # 计算词频
     )
     return np.multiply(tf, idf)
 

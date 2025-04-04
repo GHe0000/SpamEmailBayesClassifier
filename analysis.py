@@ -43,11 +43,20 @@ def plot_confusion_matrix(y_true, y_pred, class_labels, title='Confusion Matrix'
 
 
 if __name__ == "__main__":
-    X_test, y_test = load_dataset('./Data/ProcessedData/', 3000)
+    X_test, y_test = load_dataset('./Data/ProcessedData/', 500)
     model = load_model("./Model/bayes.npz")
     y_pred = predict(model, X_test)
     accuracy = np.mean(np.array(y_pred) == np.array(y_test))
     print("Accuracy:", accuracy)
+
+    y_true_01 = np.array(y_test) == 'spam'
+    y_pred_01 = np.array(y_pred) == 'spam'
+    precision = y_true_01[y_pred_01].mean()
+    recall = y_pred_01[y_true_01].mean()
+    f1 = (2 * precision * recall / (precision + recall))
+    print("Precision:", precision)
+    print("Recall:", recall)
+    print("F1-score:", f1)
     plot_confusion_matrix(
         y_test,
         y_pred,

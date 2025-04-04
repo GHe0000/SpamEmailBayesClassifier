@@ -107,16 +107,46 @@ $ log(P(l_m|d)) = log(P(l_m)) + sum_(omega_n in Omega) log(P(omega_n|l_m)) $
 
 #codeBlock[
 ```
-Test
+Received: from 163.con ([61.141.165.252])
+	by spam-gw.ccert.edu.cn (MIMEDefang) with ESMTP id j7CHJ2B9028021
+	for <xing@ccert.edu.cn>; Sun, 14 Aug 2005 10:04:03 +0800 (CST)
+Message-ID: <200508130119.j7CHJ2B9028021@spam-gw.ccert.edu.cn>
+From: =?GB2312?B?1cW6o8TP?= <jian@163.con>
+Subject: =?gb2312?B?uavLvtK1zvEutPq/qreixrGjoQ==?=
+To: xing@ccert.edu.cn
+Content-Type: text/plain;charset="GB2312"
+Date: Sun, 14 Aug 2005 10:17:57 +0800
+X-Priority: 2
+X-Mailer: Microsoft Outlook Express 5.50.4133.2400
+
+尊敬的贵公司(财务/经理)负责人您好！  
+        我是深圳金海实业有限公司（广州。东莞）等省市有分公司。  
+    我司有良好的社会关系和实力，因每月进项多出项少现有一部分  
+    发票可优惠对外代开税率较低，增值税发票为5%其它国税.地税.     
+    运输.广告等普通发票为1.5%的税点，还可以根据数目大小来衡  
+    量优惠的多少，希望贵公司.商家等来电商谈欢迎合作。
+   
+       本公司郑重承诺所用票据可到税务局验证或抵扣！
+    欢迎来电进一步商谈。
+    电话：13826556538（24小时服务）
+    信箱：szlianfen@163.com
+    联系人：张海南
+
+               
+       顺祝商祺   
+                 
+
+                   深圳市金海实业有限公司
 ```
 ]
 
-这里我们首先
+对于一个邮件文本，我们需要进行如下预处理：
+
 + 定位邮件头部结束标志，仅保留邮件正文内容
 + 移除编码字符串和 HTML 标签
 + 将所有的标点、特殊符号替换为空格
 + 使用 `jieba` 库进行分词
-+ 过滤去除所有长度等于 1 的词和停用词，并去除纯数字和电子邮件地址等无意义词
++ 过滤去除所有长度等于 1 的词和停用词#footnote[这里停用词列表使用百度停用词表.]，并去除纯数字和电子邮件地址等无意义词
 
 上述过程对应的代码如下：
 
@@ -145,18 +175,271 @@ def preprocess(raw_text, stopwords):
 
 #codeBlock[
 ```
-
+尊敬 公司 财务 经理 负责人 您好 深圳 金海 实业 有限公司 广州 东莞 省市 分公司 我司 良好 社会关系 实力 每月 进项 多出 项少 现有 一部分 发票 优惠 对外 代开 税率 增值税 发票 国税 地税 运输 广告 普通发票 税点 数目 大小 来衡 优惠 希望 公司 商家 来电 商谈 欢迎 合作 公司 郑重 承诺 所用 票据 税务局 验证 抵扣 欢迎 来电 进一步 商谈 电话 小时 服务 信箱 szlianfen com 联系人 海南 顺祝 商祺 深圳市 金海 实业 有限公司
 
 ```
 ]
 
 对于 label 文件中的每一行，我们都按照路径找到对应的邮件文本，转化为词序列后存到对应类别下的文件夹中，这样我们就得到了经过处理的数据.
 
-== 分类器算法实现
+== 分类器具体实现
 
 这里我们采用#highlight[函数式编程]的思想，将分类器分为多个纯函数的组合#footnote[一般的处理是将分类器抽象为一个对象，这也是实际中更常见的处理，但为了好玩，这里采用函数式编程的思想来实现分类器.]：
 
+前文过程可以抽象为几个纯函数：
+
+- `build_vocab`：传入一组邮件词序列，返回词汇表
+- `calc_idf`：计算词汇表中每个词在训练集的 IDF 值
+- `doc2vec`：传入一个邮件的词序列，返回每个词汇表中词的 TF-IDF 值，其构成一个特征向量
+- `train`：传入训练集，返回分类器参数
+- `predict`：传入分类器参数和邮件的词序列，返回其预测结果
+
+=== 构建词汇表
+
+#codeBlock[
+```py
+def build_vocab(docs, max_size=None):
+    df_counter = pipe(
+        docs,
+        lambda seq: map(lambda doc: {w: 1 for w in set(doc)}, seq),
+        lambda seq: reduce(
+            lambda a, b: {k: a.get(k, 0) + b.get(k, 0) for k in a.keys() | b.keys()},
+            seq,
+            {}
+        )
+    )
+
+    sorted_vocab = sorted(
+        df_counter.keys(),
+        key=lambda x: (-df_counter[x], x)
+    )
+
+    vocab = list(
+        w for i, w in enumerate(sorted_vocab)
+        if max_size is None or i < max_size
+    )
+
+    return vocab
+```
+]
+
++ 文档频率统计：
+    - 每个文档先转换为词集合（去重）
+    - 用 MapReduce 计算每个词出现的文档总数（每个文档计1次）
++ 排序处理：
+    - 按文档频率降序排列
+    - 同频词按字母升序排列
++ 截断控制：
+    - 保留前 max_size 个高频词
+
+=== 计算 IDF 值
+
+#codeBlock[
+```py
+def calc_idf(docs, vocab):
+    doc_count = len(docs)
+    df_counter = map_reduce(
+        lambda doc: defaultdict(int, {w: 1 for w in set(doc)}),
+        lambda a, b: {k: a.get(k, 0) + b.get(k, 0) for k in set(a) | set(b)}
+    )(docs)
+
+    idf = np.array([
+        np.log((doc_count + 1) / (df_counter.get(w, 0) + 1))  # 采用加 1 平滑
+        for w in vocab
+    ])
+    return idf
+```
+]
+
++ 文档频率统计：
+    - 每个文档先转换为词集合（去重）
+    - 用MapReduce计算每个词在多少文档中出现过（DF值）
+
++ IDF计算：
+    - 对词汇表每个词计算 IDF
+
+=== 计算特征向量
+
+#codeBlock[
+```py
+def doc2vec(doc, vocab, idf):
+    tf = pipe(
+        doc,
+        lambda d: Counter(d),
+        lambda cnt: [cnt.get(w, 0) / len(doc) for w in vocab]  # 计算词频
+    )
+    return np.multiply(tf, idf)
+```
+]
+
++ 词频计算：
+    - 使用 Counter 统计文档原始词频
+    - 按 vocab 词序生成向量
+
++ TF-IDF 合成：
+    - 对每个词执行元素级乘法：TF \* IDF
+
+
+=== 训练
+
+#codeBlock[
+```py
+def train_bayes(X_train, y_train, smooth=1.0, vocab_size=None):
+    # 构建特征空间
+    vocab = build_vocab(X_train, max_size=vocab_size)
+    idf = calc_idf(X_train, vocab)
+
+    # 计算类别先验
+    classes, counts = np.unique(y_train, return_counts=True)
+    prior = counts / counts.sum()
+
+    # 计算条件概率
+    def class_probability(c):
+        class_docs = [doc for doc, label in zip(X_train, y_train) if label == c]
+        vecs = [doc2vec(doc, vocab, idf) for doc in class_docs]
+        total = sum(vecs)  # 向量相加
+        return (total + smooth) / (total.sum() + smooth * len(vocab))
+
+    likelihood = np.array([class_probability(c) for c in classes])
+    return {
+        'vocab': vocab,
+        'idf': idf,
+        'classes': classes,
+        'prior': prior,
+        'likelihood': likelihood
+    }
+```
+]
+
+=== 预测
+
+#codeBlock[
+```py
+def predict(model, X_test):
+    vocab = model['vocab']
+    idf = model['idf']
+
+    def predict_single(doc):
+        vec = doc2vec(doc, vocab, idf)
+        log_probs = np.log(model['prior']) + np.sum(
+            vec * np.log(model['likelihood']), axis=1
+        )
+        return model['classes'][np.argmax(log_probs)]
+
+    return [predict_single(doc) for doc in X_test]
+```
+]
+
 == 实验结果及分析
+
+这里我们对每个类别分别选取 3000 个邮件进行训练，并选取 500 个邮件作为测试集进行测试，并分析模型的性能.
+
+这里我们约定，正为垃圾邮件（Spam），负为正常邮件（Ham）：
+- TP：预测为正，实际为正的数量
+- TN：预测为负，实际为负的数量
+- FP：预测为正，实际为负的数量
+- FN：预测为负，实际为正的数量
+
+=== 准确率
+
+准确率是分类器预测正确的邮件所占的比例，我们可以计算准确率如下：
+
+$ "Accuracy" = ("TP" + "TN") / ("TP" + "TN" + "FP" + "FN") $
+
+用 Python 代码可以及其简单地计算准确率（同样地，应用函数式编程思想来简化代码）：
+
+#codeBlock[
+```py
+accuracy = np.mean(np.array(y_pred) == np.array(y_test))
+```
+]
+
+在 500 个测试集邮件中，准确率为 0.952811.
+
+=== 精确率
+
+精确率是分类器预测出的真实的垃圾邮件所占所有预测出的垃圾邮件的比例，计算公式如下：
+
+$ "Precision" = "TP" / ("TP" + "FP") $
+
+用如下 Python 代码计算：
+
+#codeBlock[
+```py
+y_true_01 = np.array(y_test) == 'spam'  # 转换为 0-1 标签
+y_pred_01 = np.array(y_pred) == 'spam'  # 转换为 0-1 标签
+precision = y_true_01[y_pred_01].mean()
+```
+]
+
+在 500 个测试集邮件中，精确率为 0.968685.
+
+=== 召回率
+
+召回率是分类器预测出的真实的垃圾邮件占所有真实的垃圾邮件的比例，计算公式如下：
+
+$ "Recall" = "TP" / ("TP" + "FN") $
+
+用如下 Python 代码计算：
+
+#codeBlock[
+```py
+recall = y_pred_01[y_true_01].mean()
+```
+]
+
+在 500 个测试集邮件中，召回率为 0.935484.
+
+=== F1 值
+
+F1 值是精确率和召回率的调和平均值，综合了精确率和召回率，计算公式如下：
+
+$ "F1" = 2 * ("Precision" * "Recall") / ("Precision" + "Recall") $
+
+用如下 Python 代码计算：
+
+#codeBlock[
+```py
+f1 = (2 * precision * recall / (precision + recall))
+```
+]
+
+在 500 个测试集邮件中，F1 值为 0.951795.
+
+=== 混淆矩阵
+
+混淆矩阵是一个二维表，其中每一行表示实际类别，每一列表示预测类别，表格中的每个元素表示实际类别为 i 而预测类别为 j 的邮件数量. 通过分析混淆矩阵，我们可以了解模型预测的准确率、召回率、F1 值等指标.
+
+#figure(
+  image("Figure_1.png",width: 85%),
+  caption: [混淆矩阵],
+)
+
+=== 每个类别出现概率最大的词
+
+ham
+一个: 0.0132
+mm: 0.0122
+知道: 0.0121
+gg: 0.0114
+没有: 0.0109
+觉得: 0.0108
+现在: 0.0099
+喜欢: 0.0086
+他们: 0.0082
+一起: 0.0078
+
+spam
+公司: 0.0185
+发票: 0.0172
+http: 0.0155
+www: 0.0132
+com: 0.0127
+您好: 0.0094
+合作: 0.0085
+优惠: 0.0082
+代开: 0.0080
+cn: 0.0080
 
 = 总结
 
