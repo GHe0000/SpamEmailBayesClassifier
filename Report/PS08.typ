@@ -10,7 +10,7 @@
 
 // PDF 文档元信息设置
 #set document(
-  title: [概率论与数理统计扩展任务5],
+  title: [概率论与数理统计扩展任务8],
   author: ("Guotao He",),
   date: datetime.today()
 )

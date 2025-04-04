@@ -1,11 +1,10 @@
 import numpy as np
-
-import os
 from itertools import islice, takewhile
 from functools import reduce
 from collections import Counter, defaultdict
 
 from pathlib import Path
+
 
 # --- 两个工具高阶函数 ---
 def pipe(data, *funcs):
@@ -20,23 +19,25 @@ def map_reduce(mapper, reducer):
 def build_vocab(docs, max_size=None):
     df_counter = pipe(
         docs,
-        lambda seq: map(lambda doc: {w:1 for w in set(doc)}, seq),
+        lambda seq: map(lambda doc: {w: 1 for w in set(doc)}, seq),
         lambda seq: reduce(
-            lambda a,b: {k: a.get(k,0)+b.get(k,0) for k in a.keys() | b.keys()},
+            lambda a, b: {k: a.get(k, 0) + b.get(k, 0) for k in a.keys() | b.keys()},
             seq,
             {}
         )
     )
-    
+
     sorted_vocab = sorted(
         df_counter.keys(),
         key=lambda x: (-df_counter[x], x)
     )
-    
-    truncate = lambda: (w for i, w in enumerate(sorted_vocab) 
-                      if max_size is None or i < max_size)
-    
-    return list(truncate())
+
+    vocab = list(
+        w for i, w in enumerate(sorted_vocab)
+        if max_size is None or i < max_size
+    )
+
+    return vocab
 
 
 def calc_idf(docs, vocab):

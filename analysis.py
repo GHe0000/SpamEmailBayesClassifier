@@ -1,9 +1,11 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
-from BayesClassification import *
-from Data import  *
+from BayesClassification import load_model, predict
+from Data import load_dataset
 
+
+# 绘制混淆矩阵
 def plot_confusion_matrix(y_true, y_pred, class_labels, title='Confusion Matrix'):
     num_classes = len(class_labels)
     cm = np.zeros((num_classes, num_classes), dtype=int)
@@ -39,7 +41,7 @@ def plot_confusion_matrix(y_true, y_pred, class_labels, title='Confusion Matrix'
     plt.grid(False)
     plt.show()
 
-# 使用示例
+
 if __name__ == "__main__":
     X_test, y_test = load_dataset('./Data/ProcessedData/', 3000)
     model = load_model("./Model/bayes.npz")
@@ -49,6 +51,6 @@ if __name__ == "__main__":
     plot_confusion_matrix(
         y_test,
         y_pred,
-        class_labels=model['classes'],  # 确保使用模型保存的类别顺序
+        class_labels=model['classes'],
         title=f"Classification Confusion Matrix (Acc={accuracy:.2%})"
     )

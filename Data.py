@@ -2,6 +2,8 @@ import os
 from itertools import islice
 import numpy as np
 
+
+# 读取数据集，各返回 N 个文件
 def load_dataset(data_dir, n):
     X, y = [], []
 
@@ -23,6 +25,8 @@ def load_dataset(data_dir, n):
 
     return X, np.array(y)
 
+
+# 读取单个数据文件
 def load_one_file(filename):
     X = []
     with open(filename, 'r', encoding='utf-8') as f:

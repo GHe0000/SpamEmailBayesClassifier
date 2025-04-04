@@ -1,7 +1,5 @@
-import numpy as np
-from functools import reduce
+from BayesClassification import load_model
 
-from BayesClassification import *
 
 def get_top_words(model, n=10):
     def process_class(class_idx):
@@ -14,10 +12,11 @@ def get_top_words(model, n=10):
         for idx, cls in enumerate(model['classes'])
     }
 
+
 if __name__ == "__main__":
     model = load_model("./Model/bayes.npz")
     top_words = get_top_words(model, n=10)
     for cls, words in top_words.items():
-        print(f"\n===== 类别 {cls} 重要词 =====")
+        print(f"\n{cls}")
         for word, prob in words:
             print(f"{word}: {prob:.4f}")
