@@ -65,6 +65,14 @@
   v(6pt)
 }
 
+#show heading.where(level:3): it => {
+  set par(first-line-indent: 0em)
+  set text(large)
+  if it.numbering != none {
+  strong(counter(heading).display(it.numbering))
+}
+  strong(it.body)
+}
 // 自定义目录
 #set outline.entry(fill: repeat([. #h(0.25em)]))
 #show outline.entry.where(level: 1): set outline.entry(fill: [ ])
