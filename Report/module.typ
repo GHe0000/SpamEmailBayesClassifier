@@ -13,6 +13,7 @@
 
 // 自定义数学简写
 #import "@preview/quick-maths:0.1.0": shorthands
+#import "@preview/algo:0.3.6"
 
 //#import "@preview/indenta:0.0.3": fix-indent
 
@@ -89,6 +90,7 @@
   "Mark",
   stroke: rgb("#aaaaaa") + 1pt,
   base_level: 1,
+  breakable: true,
 ).with(numbering: none)
 
 #let exercise = thmbox(

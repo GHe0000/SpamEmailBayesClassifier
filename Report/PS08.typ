@@ -170,6 +170,8 @@
       v(25pt, weak: true)
       text(size: large, [GHe])
       v(25pt, weak: true)
+      text(size: large, [GitHub：#link("https://github.com/GHe0000/SpamEmailBayesClassifier")])
+      parbreak()
       text(size: large, [Build: ] + datetime.today().display())
       parbreak()
       text(size: large, [Typst Version: ] + str(sys.version))
