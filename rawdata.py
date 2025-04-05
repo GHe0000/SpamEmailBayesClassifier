@@ -42,7 +42,7 @@ def preprocess(raw_text, stopwords):
 
 if __name__ == "__main__":
     index_file = "./Data/trec06c/delay/index"
-    N = 10000  # 读取前 N 条邮件
+    N = 2*10000  # 读取前 N 条邮件
 
     stopwords_file = "./Data/stopwords.txt"
     stopwords = load_stopwords(stopwords_file)
@@ -68,6 +68,8 @@ if __name__ == "__main__":
                 label, path = re.split(r'\s+', line, 1)
                 path = os.path.abspath(os.path.join(os.path.dirname(index_file), path))
                 path = re.sub(r'data', 'utf8', path)
+                if label in ['SPAM', 'HAM']:
+                    continue
                 label = label.lower()
                 if label not in ['spam', 'ham']:
                     continue

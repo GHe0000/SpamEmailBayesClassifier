@@ -34,3 +34,12 @@ def load_one_file(filename):
         X.append(words)
     return X
 
+
+def find_word_list(X, data_dir, n, label='spam'):
+    dir = os.path.join(data_dir, label)
+    for filename in islice(os.listdir(dir), n):
+        with open(os.path.join(dir, filename), 'r', encoding='utf-8') as f:
+            words = f.read().split()
+            if(X == words):
+                return os.path.join(dir, filename)
+    return None
