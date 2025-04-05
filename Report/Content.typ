@@ -1,6 +1,22 @@
 #import "module.typ": *
 #show: module
 
+#[
+#set par(first-line-indent: 0em)
+
+#v(1fr)
+本文使用了如下 AI 模型：
+
+- DeepSeek-R1：各种提问，各种解释，辅助编写文档
+- FittenCode：代码编写辅助 AI
+
+本文所有代码（包括本 PDF 编写使用的 Typst 源码以及模板）以及部分预处理好的数据均公开在 GitHub 仓库 #link("https://github.com/GHe0000/SpamEmailBayesClassifier") 中.
+
+由于文件较多，代码量较长，因此本文并未放出全部代码，仅对关键部分进行了简要阐述.
+]
+
+#pagebreak()
+
 = 程序设计和原理阐述
 
 == 词频-逆文档频率（TF-IDF）
@@ -83,9 +99,9 @@ $ I = {op("IDF")(v_n,D)|v_n in V} $
 
 现在我们假设有了已经训练好的参数 $V$，$P$，$Q$，$I$，以及待预测的邮件 $d = {v_1, v_2, dots, v_w}$，则预测过程如下：
 
-- *计算 TF-IDF*：对于邮件 $d$，计算其词汇表中每个词的 TF-IDF 值，得到 $Omega$：
+- *计算 TF-IDF*：对于邮件 $d$，计算其词汇表中每个词的 TF-IDF 值，得到 $Omega'$：
 
-$ forall omega_n in Omega, quad omega_n = op("TF-IDF")(v_n,d,I) = (c_n)/(c_d) dot.c i_(v_n), quad v_n in V, i_n in I $
+$ forall omega'_n in Omega', quad omega'_n = op("TF-IDF")(v_n,d,I) = (c_n)/(c_d) dot.c i_(v_n), quad v_n in V, i_n in I $
 
 其中 $c_n$ 是邮件 $d$ 中词 $v_n$ 出现的次数，$c_d$ 是邮件 $d$ 的总词数，$i_n$ 是词 $v_n$ 在训练集 $D$ 中的 IDF 值.
 
@@ -93,7 +109,20 @@ $ forall omega_n in Omega, quad omega_n = op("TF-IDF")(v_n,d,I) = (c_n)/(c_d) do
 
 - *计算类别概率*：通过如下式子计算邮件 $d$ 属于标签 $l_m$ 的概率：
 
-$ log(P(l_m|d)) = log(P(l_m)) + sum_(omega_n in Omega) log(P(omega_n|l_m)) $
+$ log(P(l_m|d)) = log(P(l_m)) + sum_(omega'_n in Omega') omega'_n dot.c log(P(omega_n|l_m)), quad omega_n in Omega $
+
+
+#mark[这里也有一个小问题，为什么使用对数进行计算？为什么是 $omega'_n dot.c log(P(omega_n|l_m))$ 的形式？
+
+实际上词汇表 $V$ 中的每一个词 $v_n$ 构成了特征空间的一组#highlight[基]，张成了一个 $n$ 维的向量空间，且这组基是相互#highlight[正交]的（这里实际上暗含了词之间是#highlight[相互独立]的这一假设）
+
+#highlight[每一个邮件都可以由特征空间的一个向量表示，且其分量就是对应词的在该文档和语料库中的 TF-IDF 值. ]
+
+
+
+]
+
+#remark[从另一个方面来看使用对数进行计算同时也防止了浮点下溢，尤其是长文档.]
 
 选取概率最大的标签作为预测结果.
 
@@ -417,6 +446,8 @@ f1 = (2 * precision * recall / (precision + recall))
 
 === 每个类别出现概率最大的词
 
+当我们通过训练得到 $Q = {P(omega_n|l_m)|omega_n in Omega, l_m in L}$ 时，我们可以统计每个类别中出现概率最大的词
+
 ham
 一个: 0.0132
 mm: 0.0122
@@ -429,7 +460,7 @@ gg: 0.0114
 他们: 0.0082
 一起: 0.0078
 
-spam
+spamn
 公司: 0.0185
 发票: 0.0172
 http: 0.0155
@@ -441,5 +472,15 @@ com: 0.0127
 代开: 0.0080
 cn: 0.0080
 
+== 最“垃圾邮件”的邮件
+
 = 总结
+
+本文使用 Python 以函数式编程的方式实现了一个简单的 Bayes 分类器，并对其性能进行了评估.
+
+上述模型的实际上仍可以在下面几个方面进行改进：
+
+- *特征空间的选取*：在模型，我们默认每个词之间是相互独立的，这显然不符合常识. 同时，这也使得我们只能截取高频词进行分析. 因此一种改进方法是使用 Word2Vec 模型，通过深度学习的方式将词语映射到特征空间中，此时特征空间中的正交的“特征”完全由机器学习而来，且对于任意词语，均能进行处理.
+
+- *考虑上下文*：在模型中，实际上词语出现的先后顺序对模型分类的结果并无影响，但实际上词语的上下文（如前后词、句子等）在我们的判断中是至关重要的，因此可以使用 n-gram 或其他更复杂的模型来考虑上下文.
 
