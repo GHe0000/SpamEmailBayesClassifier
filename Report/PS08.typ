@@ -191,6 +191,33 @@
 // 目录
 #counter(page).update(1)
 #page_number_display.update("i")
+
+
+#[
+#set par(first-line-indent: 0em)
+
+#v(1fr)
+本文使用了如下 AI 模型：
+
+- DeepSeek-R1：各种提问，各种解释，辅助编写文档
+- FittenCode：代码编写辅助 AI
+
+本文所有代码均在 GitHub 仓库公开，仓库链接：#link("https://github.com/GHe0000/SpamEmailBayesClassifier") 中，包含：
+
+- 原始数据预处理代码
+- 模型训练和推理代码
+- 模型分析和可视化代码
+- 部分经过预处理的数据集
+- 用于导出本 PDF 的 Typst 源文件以及自定义的模板
+
+由于文件较多，代码量较长，因此本文并未放出全部代码，仅对关键部分进行了简要阐述.
+#v(1fr)
+]
+
+#pagebreak()
+
+
+
 #outline(indent: auto)
 //#outline(indent: auto, fill: repeat([. #h(0.25em)]))
 #pagebreak()
